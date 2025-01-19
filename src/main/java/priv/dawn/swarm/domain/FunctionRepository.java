@@ -36,6 +36,10 @@ public class FunctionRepository {
         return new FunctionFactory(this);
     }
 
+    public List<String> getNameList(){
+        return new ArrayList<>(functionMap.keySet());
+    }
+
     public FunctionRepository subRepository(String... names){
         HashSet<String> subNameSet = new HashSet<>(Arrays.asList(names));
         Map<String, ToolFunction> collect = this.functionMap.entrySet().stream()
@@ -82,8 +86,6 @@ public class FunctionRepository {
 
         /**
          * TODO 如果构造失败，就抛出一个异常
-         *
-         * @return 构造好的 Function 实例
          */
         public void register() {
             if (StringUtils.isBlank(name) || StringUtils.isBlank(desc)) {

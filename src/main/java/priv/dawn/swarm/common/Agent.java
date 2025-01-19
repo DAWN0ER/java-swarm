@@ -3,6 +3,7 @@ package priv.dawn.swarm.common;
 import lombok.Builder;
 import lombok.Getter;
 import priv.dawn.swarm.domain.FunctionRepository;
+import priv.dawn.swarm.enums.ToolChoices;
 
 /**
  * Created with IntelliJ IDEA.
@@ -29,20 +30,9 @@ public class Agent {
     private FunctionRepository functions = null;
 
     @Builder.Default
-    private String toolChoice = ToolChoice.NONE.value;
+    private String toolChoice = ToolChoices.AUTO.value;
 
     @Builder.Default
     private boolean parallelToolCalls = true;
-
-    enum ToolChoice{
-        AUTO("auto"),
-        NONE("none"),
-        ;
-        public final String value;
-
-        ToolChoice(String value) {
-            this.value = value;
-        }
-    }
 
 }

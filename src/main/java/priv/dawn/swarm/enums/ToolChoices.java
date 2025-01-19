@@ -5,15 +5,16 @@ package priv.dawn.swarm.enums;
  * Description:
  *
  * @author Dawn Yang
- * @since 2025/01/19/18:30
+ * @since 2025/01/19/21:05
  */
-public enum Role {
-    SYSTEM("system"),
-
+public enum ToolChoices {
+    AUTO("auto"),
+    NONE("none"),
+    REQUIRED("required"),
     ;
+
     public final String value;
-    Role(String value){
+    ToolChoices(String value) {
         this.value = value;
     }
-
 }

@@ -1,7 +1,16 @@
 import com.google.gson.Gson;
 import org.junit.Test;
+import priv.dawn.swarm.api.AgentClient;
+import priv.dawn.swarm.common.Agent;
+import priv.dawn.swarm.common.AgentMessage;
 import priv.dawn.swarm.common.ToolFunction;
 import priv.dawn.swarm.domain.FunctionRepository;
+import priv.dawn.swarm.domain.OpenAIClient;
+import priv.dawn.swarm.enums.Roles;
+
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 
 /**
  * Created with IntelliJ IDEA.
@@ -39,6 +48,49 @@ public class SimpleLab {
         ToolFunction f2 = repository.getTool("F2");
         String s = new Gson().toJson(f2);
         System.out.println("s = " + s);
+    }
+
+    @Test
+    public void t2(){
+
+        Agent agent = Agent.builder()
+                .name("伊雷娜")
+                .instructions("你是一个可爱的猫娘，是我们的生活助理。语气可爱一点，结尾需要加上”喵~“。")
+                .model("qwen-turbo")
+                .functions(getOne())
+                .build();
+        String apiKey = System.getenv("APIKEY");
+        AgentClient client = new OpenAIClient(apiKey,"https://dashscope.aliyuncs.com/compatible-mode/v1/");
+        AgentMessage msg = new AgentMessage();
+        msg.setRole(Roles.USER.value);
+        msg.setContent("现在几点了？成都天气怎么样？");
+        List<AgentMessage> run = client.run(agent, Collections.singletonList(msg), 100);
+        System.out.println("ANSWER = " + new Gson().toJson(run));
+        System.out.println(">>>\n"+run.get(run.size()-1).getContent());
+
+
+    }
+
+    private FunctionRepository getOne(){
+        FunctionRepository repository = new FunctionRepository();
+        repository.factory()
+                .name("get_weather")
+                .description("获取指定城市的当前天气描述。")
+                .addParamDescription("city","城市名")
+                .functionCall(str -> {
+                    System.out.println("【TEST】工具函数被调用 = " + str);
+                    return "天气晴朗，温度适宜，没有严重空气污染。";
+                })
+                .register();
+        repository.factory()
+                .name("get_time")
+                .description("获取当前时间。")
+                .functionCall(str->{
+                    System.out.println("[TEST] 时间工具函数被调用");
+                    return new Date().toString();
+                })
+                .register();
+        return repository;
     }
 
 }

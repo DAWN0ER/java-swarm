@@ -2,7 +2,6 @@ package priv.dawn.swarm.api;
 
 import priv.dawn.swarm.common.Agent;
 import priv.dawn.swarm.common.AgentMessage;
-import priv.dawn.swarm.common.AgentResponse;
 
 import java.util.List;
 
@@ -15,6 +14,6 @@ import java.util.List;
  */
 public interface AgentClient {
 
-    AgentResponse run(Agent agent, List<AgentMessage> messages, int maxTurn);
+    List<AgentMessage> run(Agent agent, List<AgentMessage> messages, int maxTurn);
 
 }

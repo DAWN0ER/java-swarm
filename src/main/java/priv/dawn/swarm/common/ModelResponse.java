@@ -2,6 +2,8 @@ package priv.dawn.swarm.common;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * Created with IntelliJ IDEA.
  * Description:
@@ -17,12 +19,12 @@ public class ModelResponse {
 
     private String content;
 
-    private ToolFunctionCall call;
+    private List<ToolFunctionCall> calls;
 
     public enum Type{
         STREAM(0),
         FINISH(1),
-        TOOL(2),
+        TOOL_CALL(2),
         OVER_LENGTH(-1),
         ;
         public final int code;
