@@ -1,7 +1,9 @@
 package priv.dawn.swarm.api;
 
+import io.reactivex.Flowable;
 import priv.dawn.swarm.common.Agent;
 import priv.dawn.swarm.common.AgentMessage;
+import priv.dawn.swarm.common.AgentStreamMessage;
 
 import java.util.List;
 
@@ -16,4 +18,5 @@ public interface AgentClient {
 
     List<AgentMessage> run(Agent agent, List<AgentMessage> messages, int maxTurn);
 
+    Flowable<AgentStreamMessage> streamRun(Agent agent, List<AgentMessage> messages, int maxTurn);
 }

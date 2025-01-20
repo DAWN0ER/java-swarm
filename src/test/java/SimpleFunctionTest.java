@@ -1,8 +1,10 @@
 import com.google.gson.Gson;
+import io.reactivex.Flowable;
 import org.junit.Test;
 import priv.dawn.swarm.api.AgentClient;
 import priv.dawn.swarm.common.Agent;
 import priv.dawn.swarm.common.AgentMessage;
+import priv.dawn.swarm.common.AgentStreamMessage;
 import priv.dawn.swarm.common.ToolFunction;
 import priv.dawn.swarm.domain.FunctionRepository;
 import priv.dawn.swarm.domain.OpenAIClient;
@@ -19,10 +21,10 @@ import java.util.List;
  * @author Dawn Yang
  * @since 2025/01/18/23:04
  */
-public class SimpleLab {
+public class SimpleFunctionTest {
 
     @Test
-    public void t1() {
+    public void functionRepositoryTest() {
         FunctionRepository repository = new FunctionRepository();
         repository.factory()
                 .name("Fuc1")
@@ -51,7 +53,7 @@ public class SimpleLab {
     }
 
     @Test
-    public void t2(){
+    public void clientRunTest(){
 
         Agent agent = Agent.builder()
                 .name("伊雷娜")
@@ -68,7 +70,24 @@ public class SimpleLab {
         System.out.println("ANSWER = " + new Gson().toJson(run));
         System.out.println(">>>\n"+run.get(run.size()-1).getContent());
 
+    }
 
+    @Test
+    public void streamRunTest(){
+        Agent agent = Agent.builder()
+                .name("伊雷娜")
+                .instructions("你是一个可爱的猫娘，是我们的生活助理。语气可爱一点，结尾需要加上”喵~“。")
+                .model("qwen-turbo")
+                .functions(getOne())
+                .build();
+        String apiKey = System.getenv("APIKEY");
+        AgentClient client = new OpenAIClient(apiKey,"https://dashscope.aliyuncs.com/compatible-mode/v1/");
+        AgentMessage msg = new AgentMessage();
+        msg.setRole(Roles.USER.value);
+        msg.setContent("现在几点了？成都天气怎么样？");
+        Flowable<AgentStreamMessage> streamRun = client.streamRun(agent, Collections.singletonList(msg), 100);
+        Gson gson = new Gson();
+        streamRun.map(gson::toJson).blockingForEach(System.out::println);
     }
 
     private FunctionRepository getOne(){
@@ -92,5 +111,4 @@ public class SimpleLab {
                 .register();
         return repository;
     }
-
 }

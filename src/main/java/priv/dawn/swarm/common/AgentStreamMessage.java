@@ -2,8 +2,6 @@ package priv.dawn.swarm.common;
 
 import lombok.Data;
 
-import java.util.List;
-
 /**
  * Created with IntelliJ IDEA.
  * Description:
@@ -13,8 +11,9 @@ import java.util.List;
  */
 
 @Data
-public class AgentResponse {
+public class AgentStreamMessage {
 
-    private List<AgentMessage> messages;
+    private int msgIndex;
+    private AgentMessage messages;
 
 }
