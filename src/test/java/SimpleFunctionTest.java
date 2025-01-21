@@ -1,5 +1,6 @@
 import com.google.gson.Gson;
 import io.reactivex.Flowable;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import priv.dawn.swarm.api.AgentClient;
 import priv.dawn.swarm.common.Agent;
@@ -21,6 +22,7 @@ import java.util.List;
  * @author Dawn Yang
  * @since 2025/01/18/23:04
  */
+@Slf4j
 public class SimpleFunctionTest {
 
     @Test
@@ -67,8 +69,7 @@ public class SimpleFunctionTest {
         msg.setRole(Roles.USER.value);
         msg.setContent("现在几点了？成都天气怎么样？");
         List<AgentMessage> run = client.run(agent, Collections.singletonList(msg), 100);
-        System.out.println("ANSWER = " + new Gson().toJson(run));
-        System.out.println(">>>\n"+run.get(run.size()-1).getContent());
+        log.info("ANSWER: {}",new Gson().toJson(run));
 
     }
 
@@ -85,9 +86,11 @@ public class SimpleFunctionTest {
         AgentMessage msg = new AgentMessage();
         msg.setRole(Roles.USER.value);
         msg.setContent("现在几点了？成都天气怎么样？");
+//        msg.setContent("科普一下 Transformer 神经网络是什么？不少于500字");
         Flowable<AgentStreamMessage> streamRun = client.streamRun(agent, Collections.singletonList(msg), 100);
         Gson gson = new Gson();
-        streamRun.map(gson::toJson).blockingForEach(System.out::println);
+        System.out.println(">>> ANSWER >>>");
+        streamRun.blockingForEach(chunk-> System.out.println(chunk.getMessages().getContent()));
     }
 
     private FunctionRepository getOne(){
@@ -97,7 +100,7 @@ public class SimpleFunctionTest {
                 .description("获取指定城市的当前天气描述。")
                 .addParamDescription("city","城市名")
                 .functionCall(str -> {
-                    System.out.println("【TEST】工具函数被调用 = " + str);
+                    log.debug("天气工具函数被调用: args={}",str);
                     return "天气晴朗，温度适宜，没有严重空气污染。";
                 })
                 .register();
@@ -105,10 +108,11 @@ public class SimpleFunctionTest {
                 .name("get_time")
                 .description("获取当前时间。")
                 .functionCall(str->{
-                    System.out.println("[TEST] 时间工具函数被调用");
+                    log.debug("时间工具函数被调用");
                     return new Date().toString();
                 })
                 .register();
         return repository;
     }
+
 }

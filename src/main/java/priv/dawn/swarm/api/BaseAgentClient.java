@@ -1,9 +1,12 @@
 package priv.dawn.swarm.api;
 
+import com.google.gson.Gson;
 import io.reactivex.Flowable;
 import io.reactivex.processors.FlowableProcessor;
 import io.reactivex.processors.PublishProcessor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.Validate;
 import priv.dawn.swarm.common.*;
 import priv.dawn.swarm.domain.FunctionRepository;
 import priv.dawn.swarm.enums.Roles;
@@ -11,6 +14,7 @@ import priv.dawn.swarm.enums.Roles;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -22,13 +26,15 @@ import java.util.concurrent.Executors;
  * @since 2025/01/19/17:15
  */
 
+@Slf4j
 @Getter
 public abstract class BaseAgentClient implements AgentClient {
 
     protected String apiKey;
     protected String baseUrl;
-    // TODO 临时使用的单线程池，后续肯定提供其他配置
+    // TODO 临时使用的单线程池，后续提供其他配置
     protected ExecutorService singleThreadPool = Executors.newSingleThreadExecutor();
+    private final Gson gson = new Gson();
 
     protected abstract ModelResponse modelCall(Agent agent, List<AgentMessage> messages);
 
@@ -41,7 +47,8 @@ public abstract class BaseAgentClient implements AgentClient {
 
     @Override
     public List<AgentMessage> run(Agent agent, List<AgentMessage> messages, int maxTurn) {
-        // TODO 前置校验抛异常
+        verifyArguments(agent,messages,maxTurn);
+        log.debug("Client run: agent:{}, messages:{}, maxTurn:{}", agent.getName(), gson.toJson(messages), maxTurn);
 
         List<AgentMessage> appendMsg = new ArrayList<>(maxTurn);
         AgentMessage prompt = new AgentMessage();
@@ -61,6 +68,7 @@ public abstract class BaseAgentClient implements AgentClient {
 
             // 如果响应是对话结束
             if (ModelResponse.Type.FINISH.code == response.getType()) {
+                log.debug("Client run end. total turns:{}", appendMsg.size());
                 return appendMsg;
             }
 
@@ -71,16 +79,24 @@ public abstract class BaseAgentClient implements AgentClient {
                 appendMsg.addAll(toolResults);
             }
         }
+        // 证明已经达到 maxTurn
+        log.warn("Client run reach max turn! maxTurn={}", maxTurn);
         return appendMsg;
     }
 
     @Override
     public Flowable<AgentStreamMessage> streamRun(Agent agent, List<AgentMessage> messages, int maxTurn) {
+        verifyArguments(agent,messages,maxTurn);
+        log.debug("Client stream run: agent:{}, messages:{}, maxTurn:{}",
+                agent.getName(), gson.toJson(messages), maxTurn);
         FlowableProcessor<AgentStreamMessage> processor = PublishProcessor.create();
         singleThreadPool.execute(() -> asyncRun(processor, agent, messages, maxTurn));
         return Flowable.fromPublisher(processor).onBackpressureBuffer();
     }
 
+    /**
+     * streamRun 的实际执行函数，异步多线程调用
+     */
     private void asyncRun(
             FlowableProcessor<AgentStreamMessage> processor,
             Agent agent,
@@ -106,7 +122,7 @@ public abstract class BaseAgentClient implements AgentClient {
             Flowable<ModelResponse> responseFlowable = modelStreamCall(agent, allMsg);
             // 等待响应的 stream 完成，Response 也全部填充完成，继续走流程就行
             responseFlowable.blockingForEach(chunk -> {
-                if (chunk.getType()==ModelResponse.Type.DUPLICATED.code){
+                if (chunk.getType() == ModelResponse.Type.DUPLICATED.code) {
                     return;
                 }
                 // 覆盖 ModelResponse 中需要的字段
@@ -122,11 +138,14 @@ public abstract class BaseAgentClient implements AgentClient {
             });
 
             // 此时 stream 的所有字段都存储完成。
+            log.debug("Stream turn:{}, completed response:{}",thisTurn, gson.toJson(thisTurnRsp));
             AgentMessage message = castFromModelRsp(thisTurnRsp);
             appendMsg.add(message);
             // 如果响应是结束，则返回
             if (ModelResponse.Type.FINISH.code == thisTurnRsp.getType()) {
-                break;
+                log.debug("Client stream run end. total turns:{}", appendMsg.size());
+                processor.onComplete();
+                return;
             }
 
             // 处理函数调用
@@ -143,16 +162,37 @@ public abstract class BaseAgentClient implements AgentClient {
                 });
             }
         }
+        // 证明已经达到 maxTurn
+        log.warn("Client stream run reach max turn! maxTurn={}", maxTurn);
         processor.onComplete();
     }
 
-    protected List<AgentMessage> handleFunctionCall(List<ToolFunctionCall> calls, Agent agent) {
+    /**
+     * 参数校验
+     */
+    private void verifyArguments(Agent agent, List<AgentMessage> messages, int maxTurn) {
+        Validate.notNull(agent, "Agent can`t be null.");
+        Validate.notNull(agent, "Messages can`t be null.");
+        Validate.notBlank(agent.getModel(), "Agent.model can`t be null.");
+        Validate.notEmpty(messages, "messages can't be empty or null.");
+        Validate.isTrue(maxTurn > 0, "maxTurn must > 0.");
+
+    }
+
+    /**
+     *
+     * @param calls 工具调用请求
+     * @param agent 智能体
+     * @return 完成的工具调用的结果的 result，格式为 {”role“: "tool","content":"__result__"...}
+     */
+    private List<AgentMessage> handleFunctionCall(List<ToolFunctionCall> calls, Agent agent) {
         FunctionRepository functionRepository = agent.getFunctions();
         List<AgentMessage> toolMsgList = new ArrayList<>();
         for (ToolFunctionCall call : calls) {
             ToolFunction tool = functionRepository.getTool(call.getName());
             if (Objects.isNull(tool)) {
                 // 未找到 tool 的处理逻辑
+                log.warn("Tool Name:{} not Found!", call.getName());
                 ToolFunctionResult noneResult = new ToolFunctionResult();
                 noneResult.setResult("Error: Tool \"" + call.getName() + "\" not found.");
                 noneResult.setCallId(call.getCallId());
@@ -163,11 +203,17 @@ public abstract class BaseAgentClient implements AgentClient {
                 toolMsgList.add(message);
                 continue;
             }
+            log.debug("Handle tool call. id:{}, tool name: {}, args: {}.",
+                    call.getCallId(), call.getName(), call.getJsonParam());
             String stringResult = tool.getCallableFunction().call(call.getJsonParam());
+            // 如果是 null 的话就转换为 ”“
+            stringResult = Optional.ofNullable(stringResult).orElse("");
             ToolFunctionResult result = new ToolFunctionResult();
             result.setCallId(call.getCallId());
             result.setName(call.getName());
             result.setResult(stringResult);
+            log.debug("Tool call result: id:{}, tool name: {}, result: {}.",
+                    result.getCallId(), result.getName(), result.getResult());
             AgentMessage message = new AgentMessage();
             message.setRole(Roles.TOOL.value);
             message.setToolResult(result);
@@ -176,8 +222,13 @@ public abstract class BaseAgentClient implements AgentClient {
         return toolMsgList;
     }
 
-    // 把 model 接口的 response 的需要字段全部塞进去
-    protected AgentMessage castFromModelRsp(ModelResponse rsp) {
+    /**
+     * 把 model 接口的 response 的需要字段全部塞进去
+     *
+     * @param rsp ModelCall 或者 ModelSteamCAll 的返回响应
+     * @return 携带 content 和 toolCalls 的 Message
+     */
+    private AgentMessage castFromModelRsp(ModelResponse rsp) {
         AgentMessage msg = new AgentMessage();
         msg.setRole(Roles.ASSISTANT.value);
         msg.setContent(rsp.getContent());

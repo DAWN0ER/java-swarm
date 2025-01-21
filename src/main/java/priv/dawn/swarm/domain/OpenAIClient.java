@@ -2,12 +2,14 @@ package priv.dawn.swarm.domain;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import com.theokanning.openai.assistants.run.ToolChoice;
 import com.theokanning.openai.completion.chat.*;
 import com.theokanning.openai.function.FunctionDefinition;
 import com.theokanning.openai.service.OpenAiService;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import priv.dawn.swarm.api.BaseAgentClient;
 import priv.dawn.swarm.common.*;
 import priv.dawn.swarm.enums.Roles;
@@ -27,10 +29,12 @@ import java.util.stream.Collectors;
  * @since 2025/01/19/19:53
  */
 
+@Slf4j
 public class OpenAIClient extends BaseAgentClient {
 
     private final OpenAiService service;
     private final ObjectMapper mapper = new ObjectMapper();
+    private final Gson gson = new Gson();
 
     public OpenAIClient(String apiKey, String baseUrl) {
         super(apiKey, baseUrl);
@@ -39,6 +43,8 @@ public class OpenAIClient extends BaseAgentClient {
 
     @Override
     protected ModelResponse modelCall(Agent agent, List<AgentMessage> messages) {
+
+        log.debug("OpenAIClient#modelCall: Agent name:{}, messages:{}",agent.getName() ,gson.toJson(messages));
 
         ChatCompletionRequest chatCompletionRequest = buildParam(agent, messages);
         ChatCompletionResult chatCompletion = service.createChatCompletion(chatCompletionRequest);
@@ -62,14 +68,14 @@ public class OpenAIClient extends BaseAgentClient {
                         .collect(Collectors.toList());
                 response.setCalls(calls);
         }
-        // DEGUG
-//        System.out.println("OpenAIClient.modelCall");
-//        System.out.println("response = " + new Gson().toJson(response));
+        log.debug("OpenAIClient#modelCall: response:{}", response);
         return response;
     }
 
     @Override
     protected Flowable<ModelResponse> modelStreamCall(Agent agent, List<AgentMessage> messages) {
+
+        log.debug("OpenAIClient#modelStreamCall: Agent name:{}, messages:{}",agent.getName() ,gson.toJson(messages));
         ChatCompletionRequest chatCompletionRequest = buildParam(agent, messages);
         Flowable<ChatCompletionChunk> orgFlowable = service.streamChatCompletion(chatCompletionRequest);
         return orgFlowable.map(this::chatChunk2Rsp);
