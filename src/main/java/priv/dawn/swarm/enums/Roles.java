@@ -12,7 +12,6 @@ public enum Roles {
     SYSTEM("system"),
     USER("user"),
     TOOL("tool"),
-    FUNCTION("function"),
     ASSISTANT("assistant"),
     ;
     public final String value;

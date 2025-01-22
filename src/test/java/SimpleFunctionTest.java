@@ -7,8 +7,8 @@ import priv.dawn.swarm.common.Agent;
 import priv.dawn.swarm.common.AgentMessage;
 import priv.dawn.swarm.common.AgentStreamMessage;
 import priv.dawn.swarm.common.ToolFunction;
+import priv.dawn.swarm.domain.DashScopeClient;
 import priv.dawn.swarm.domain.FunctionRepository;
-import priv.dawn.swarm.domain.OpenAIClient;
 import priv.dawn.swarm.enums.Roles;
 
 import java.util.Collections;
@@ -64,7 +64,8 @@ public class SimpleFunctionTest {
                 .functions(getOne())
                 .build();
         String apiKey = System.getenv("APIKEY");
-        AgentClient client = new OpenAIClient(apiKey,"https://dashscope.aliyuncs.com/compatible-mode/v1/");
+//        AgentClient client = new OpenAIClient(apiKey,"https://dashscope.aliyuncs.com/compatible-mode/v1/");
+        AgentClient client = new DashScopeClient(apiKey,"https://dashscope.aliyuncs.com/compatible-mode/v1/");
         AgentMessage msg = new AgentMessage();
         msg.setRole(Roles.USER.value);
         msg.setContent("现在几点了？成都天气怎么样？");
@@ -79,14 +80,15 @@ public class SimpleFunctionTest {
                 .name("伊雷娜")
                 .instructions("你是一个可爱的猫娘，是我们的生活助理。语气可爱一点，结尾需要加上”喵~“。")
                 .model("qwen-turbo")
-                .functions(getOne())
+//                .functions(getOne())
                 .build();
         String apiKey = System.getenv("APIKEY");
-        AgentClient client = new OpenAIClient(apiKey,"https://dashscope.aliyuncs.com/compatible-mode/v1/");
+//        AgentClient client = new OpenAIClient(apiKey,"https://dashscope.aliyuncs.com/compatible-mode/v1/");
+        AgentClient client = new DashScopeClient(apiKey,"https://dashscope.aliyuncs.com/compatible-mode/v1/");
         AgentMessage msg = new AgentMessage();
         msg.setRole(Roles.USER.value);
-        msg.setContent("现在几点了？成都天气怎么样？");
-//        msg.setContent("科普一下 Transformer 神经网络是什么？不少于500字");
+//        msg.setContent("现在几点了？成都天气怎么样？");
+        msg.setContent("科普一下 Transformer 神经网络是什么？不少于500字");
         Flowable<AgentStreamMessage> streamRun = client.streamRun(agent, Collections.singletonList(msg), 100);
         Gson gson = new Gson();
         System.out.println(">>> ANSWER >>>");

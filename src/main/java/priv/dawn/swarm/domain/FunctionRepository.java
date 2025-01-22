@@ -28,16 +28,20 @@ public class FunctionRepository {
         functionMap.put(tool.getName(), tool);
     }
 
-    public ToolFunction getTool(String name) {
-        return functionMap.get(name);
-    }
-
     public FunctionFactory factory() {
         return new FunctionFactory(this);
     }
 
+    public ToolFunction getTool(String name) {
+        return functionMap.get(name);
+    }
+
     public List<String> getNameList(){
         return new ArrayList<>(functionMap.keySet());
+    }
+
+    public boolean isEmpty(){
+        return functionMap.isEmpty();
     }
 
     public FunctionRepository subRepository(String... names){

@@ -16,12 +16,18 @@ import java.util.List;
 public class AgentMessage {
 
     private String role;
+
+    /**
+     * 注意：
+     * 只有 role 为 assistant，system，user 时才会从 content 读写内容
+     * 当 role 为 tool 时，tool 调用的结构存在 toolResult 中而非 content 中
+     */
     private String content;
 
     /**
      * 下面两个分别是 tool call 的调用和响应
      * openai 可以在一个 message 中平行调用多个 tool_call，但是 DashScope 一次智能调用一个 tool_call
-     * 但是每一个 tool 的 result 都需要一个 message
+     * 每一个 tool 调用返回的 result 都需要一个 message 单独包装发送
      */
     private List<ToolFunctionCall> toolCalls;
     private ToolFunctionResult toolResult;

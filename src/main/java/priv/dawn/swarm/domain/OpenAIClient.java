@@ -2,7 +2,6 @@ package priv.dawn.swarm.domain;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
 import com.theokanning.openai.assistants.run.ToolChoice;
 import com.theokanning.openai.completion.chat.*;
 import com.theokanning.openai.function.FunctionDefinition;
@@ -10,15 +9,14 @@ import com.theokanning.openai.service.OpenAiService;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import priv.dawn.swarm.api.BaseAgentClient;
 import priv.dawn.swarm.common.*;
 import priv.dawn.swarm.enums.Roles;
 import priv.dawn.swarm.enums.ToolChoices;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -34,7 +32,6 @@ public class OpenAIClient extends BaseAgentClient {
 
     private final OpenAiService service;
     private final ObjectMapper mapper = new ObjectMapper();
-    private final Gson gson = new Gson();
 
     public OpenAIClient(String apiKey, String baseUrl) {
         super(apiKey, baseUrl);
@@ -44,7 +41,7 @@ public class OpenAIClient extends BaseAgentClient {
     @Override
     protected ModelResponse modelCall(Agent agent, List<AgentMessage> messages) {
 
-        log.debug("OpenAIClient#modelCall: Agent name:{}, messages:{}",agent.getName() ,gson.toJson(messages));
+        log.debug("OpenAIClient#modelCall: Agent name:{}, messages:{}", agent.getName(), gson.toJson(messages));
 
         ChatCompletionRequest chatCompletionRequest = buildParam(agent, messages);
         ChatCompletionResult chatCompletion = service.createChatCompletion(chatCompletionRequest);
@@ -75,7 +72,7 @@ public class OpenAIClient extends BaseAgentClient {
     @Override
     protected Flowable<ModelResponse> modelStreamCall(Agent agent, List<AgentMessage> messages) {
 
-        log.debug("OpenAIClient#modelStreamCall: Agent name:{}, messages:{}",agent.getName() ,gson.toJson(messages));
+        log.debug("OpenAIClient#modelStreamCall: Agent name:{}, messages:{}", agent.getName(), gson.toJson(messages));
         ChatCompletionRequest chatCompletionRequest = buildParam(agent, messages);
         Flowable<ChatCompletionChunk> orgFlowable = service.streamChatCompletion(chatCompletionRequest);
         return orgFlowable.map(this::chatChunk2Rsp);
@@ -84,8 +81,6 @@ public class OpenAIClient extends BaseAgentClient {
     private ChatCompletionRequest buildParam(Agent agent, List<AgentMessage> messages) {
         // 前期准备
         List<ChatMessage> chatMessages = new ArrayList<>();
-        chatMessages.add(new SystemMessage(agent.getInstructions()));
-        List<String> toolNameList = agent.getFunctions().getNameList();
 
         // 将 AgentMessage 转换为 ChatMessage
         for (AgentMessage msg : messages) {
@@ -97,9 +92,9 @@ public class OpenAIClient extends BaseAgentClient {
             } else if (Roles.ASSISTANT.value.equals(msg.getRole())) {
                 AssistantMessage message = new AssistantMessage();
                 message.setContent(msg.getContent());
-                List<ToolFunctionCall> toolCalls = msg.getToolCalls();
+                List<ToolFunctionCall> toolCalls = ListUtils.emptyIfNull(msg.getToolCalls());
                 List<ChatToolCall> callList = toolCalls.stream()
-                        .map(toolCall -> cast2ChatCall(toolCall, toolNameList))
+                        .map(this::cast2ChatCall)
                         .collect(Collectors.toList());
                 message.setToolCalls(callList);
                 chatMessages.add(message);
@@ -124,13 +119,13 @@ public class OpenAIClient extends BaseAgentClient {
     }
 
     @SneakyThrows
-    private ChatToolCall cast2ChatCall(ToolFunctionCall call, List<String> nameList) {
+    private ChatToolCall cast2ChatCall(ToolFunctionCall call) {
         ChatToolCall chatToolCall = new ChatToolCall();
         chatToolCall.setId(call.getCallId());
         chatToolCall.setType("function");
-        chatToolCall.setIndex(nameList.indexOf(call.getName()));
-        JsonNode paramNode = mapper.createObjectNode(); // {}
-        if (Objects.nonNull(call.getJsonParam())) {
+        // 这边默认没有设置 index，个人觉得没有必要，如果其他接口有强制要求就自己改装一下吧。
+        JsonNode paramNode = mapper.createObjectNode(); // 生成一个 {}
+        if (StringUtils.isNoneBlank(call.getJsonParam())) {
             paramNode = mapper.readTree(call.getJsonParam());
         }
         chatToolCall.setFunction(
@@ -150,6 +145,9 @@ public class OpenAIClient extends BaseAgentClient {
     }
 
     private List<ChatTool> cast2ToolDefinition(FunctionRepository functionRepository) {
+        if (Objects.isNull(functionRepository) || functionRepository.isEmpty()) {
+            return null;
+        }
         List<String> nameList = functionRepository.getNameList();
         List<ChatTool> chatTools = new ArrayList<>();
         for (String name : nameList) {
@@ -185,6 +183,7 @@ public class OpenAIClient extends BaseAgentClient {
         }
         ChatCompletionChoice choice = Optional.ofNullable(chunk.getChoices()).map(a -> a.get(0)).orElse(null);
         if (Objects.isNull(choice)) {
+            response.setType(ModelResponse.Type.DUPLICATED.code);
             return response;
         }
         String finishReason = Optional.ofNullable(choice.getFinishReason()).orElse(""); // 避免 null

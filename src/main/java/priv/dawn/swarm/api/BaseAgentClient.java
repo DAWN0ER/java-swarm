@@ -34,7 +34,7 @@ public abstract class BaseAgentClient implements AgentClient {
     protected String baseUrl;
     // TODO 临时使用的单线程池，后续提供其他配置
     protected ExecutorService singleThreadPool = Executors.newSingleThreadExecutor();
-    private final Gson gson = new Gson();
+    protected final Gson gson = new Gson();
 
     protected abstract ModelResponse modelCall(Agent agent, List<AgentMessage> messages);
 
@@ -189,7 +189,9 @@ public abstract class BaseAgentClient implements AgentClient {
         FunctionRepository functionRepository = agent.getFunctions();
         List<AgentMessage> toolMsgList = new ArrayList<>();
         for (ToolFunctionCall call : calls) {
-            ToolFunction tool = functionRepository.getTool(call.getName());
+            ToolFunction tool = Optional.ofNullable(functionRepository)
+                    .map(f->f.getTool(call.getName()))
+                    .orElse(null);
             if (Objects.isNull(tool)) {
                 // 未找到 tool 的处理逻辑
                 log.warn("Tool Name:{} not Found!", call.getName());
