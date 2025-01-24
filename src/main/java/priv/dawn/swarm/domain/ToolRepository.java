@@ -16,11 +16,11 @@ import java.util.stream.Collectors;
  * @author Dawn Yang
  * @since 2025/01/19/10:01
  */
-public class FunctionRepository {
+public class ToolRepository {
 
     private final Map<String, ToolFunction> functionMap;
 
-    public FunctionRepository(){
+    public ToolRepository(){
         functionMap = new HashMap<>();
     }
 
@@ -44,15 +44,15 @@ public class FunctionRepository {
         return functionMap.isEmpty();
     }
 
-    public FunctionRepository subRepository(String... names){
+    public ToolRepository subRepository(String... names){
         HashSet<String> subNameSet = new HashSet<>(Arrays.asList(names));
         Map<String, ToolFunction> collect = this.functionMap.entrySet().stream()
                 .filter(entry -> subNameSet.contains(entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        return new FunctionRepository(collect);
+        return new ToolRepository(collect);
     }
 
-    private FunctionRepository(Map<String, ToolFunction> functionMap){
+    private ToolRepository(Map<String, ToolFunction> functionMap){
         this.functionMap = functionMap;
     }
 
@@ -62,9 +62,9 @@ public class FunctionRepository {
         private String name;
         private String desc;
         private CallableFunction function;
-        private final FunctionRepository repository;
+        private final ToolRepository repository;
 
-        private FunctionFactory(FunctionRepository repository) {
+        private FunctionFactory(ToolRepository repository) {
             this.repository = repository;
         }
 

@@ -14,6 +14,6 @@ import lombok.Data;
 public class AgentStreamMessage {
 
     private int msgIndex;
-    private AgentMessage messages;
+    private AgentMessage message;
 
 }

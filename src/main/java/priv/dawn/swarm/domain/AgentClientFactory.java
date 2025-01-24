@@ -15,7 +15,7 @@ import priv.dawn.swarm.enums.ClientType;
 @Slf4j
 public class AgentClientFactory {
 
-    public AgentClient create(String apiKey, String baseUrl, ClientType core){
+    public static AgentClient create(String apiKey, String baseUrl, ClientType core){
         switch (core){
             case OPEN_AI:
                 return new OpenAIClient(apiKey,baseUrl);

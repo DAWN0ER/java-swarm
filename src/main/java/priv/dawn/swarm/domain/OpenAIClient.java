@@ -144,14 +144,14 @@ public class OpenAIClient extends BaseAgentClient {
         return toolCall;
     }
 
-    private List<ChatTool> cast2ToolDefinition(FunctionRepository functionRepository) {
-        if (Objects.isNull(functionRepository) || functionRepository.isEmpty()) {
+    private List<ChatTool> cast2ToolDefinition(ToolRepository toolRepository) {
+        if (Objects.isNull(toolRepository) || toolRepository.isEmpty()) {
             return null;
         }
-        List<String> nameList = functionRepository.getNameList();
+        List<String> nameList = toolRepository.getNameList();
         List<ChatTool> chatTools = new ArrayList<>();
         for (String name : nameList) {
-            ToolFunction tool = functionRepository.getTool(name);
+            ToolFunction tool = toolRepository.getTool(name);
             chatTools.add(new ChatTool(FunctionDefinition.builder()
                     .name(name)
                     .description(tool.getDescription())

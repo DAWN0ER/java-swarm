@@ -8,7 +8,7 @@ import priv.dawn.swarm.common.AgentMessage;
 import priv.dawn.swarm.common.AgentStreamMessage;
 import priv.dawn.swarm.common.ToolFunction;
 import priv.dawn.swarm.domain.DashScopeClient;
-import priv.dawn.swarm.domain.FunctionRepository;
+import priv.dawn.swarm.domain.ToolRepository;
 import priv.dawn.swarm.enums.Roles;
 
 import java.util.Collections;
@@ -27,7 +27,7 @@ public class SimpleFunctionTest {
 
     @Test
     public void functionRepositoryTest() {
-        FunctionRepository repository = new FunctionRepository();
+        ToolRepository repository = new ToolRepository();
         repository.factory()
                 .name("Fuc1")
                 .description("这是对 Fuc1 的描述！")
@@ -92,11 +92,11 @@ public class SimpleFunctionTest {
         Flowable<AgentStreamMessage> streamRun = client.streamRun(agent, Collections.singletonList(msg), 100);
         Gson gson = new Gson();
         System.out.println(">>> ANSWER >>>");
-        streamRun.blockingForEach(chunk-> System.out.println(chunk.getMessages().getContent()));
+        streamRun.blockingForEach(chunk-> System.out.println(chunk.getMessage().getContent()));
     }
 
-    private FunctionRepository getOne(){
-        FunctionRepository repository = new FunctionRepository();
+    private ToolRepository getOne(){
+        ToolRepository repository = new ToolRepository();
         repository.factory()
                 .name("get_weather")
                 .description("获取指定城市的当前天气描述。")

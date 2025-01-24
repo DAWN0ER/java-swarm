@@ -2,7 +2,7 @@ package priv.dawn.swarm.api;
 
 /**
  * Created with IntelliJ IDEA.
- * Description:
+ * Description: 传入 json 字符串处理后传出字符串序列化结果的函数。
  *
  * @author Dawn Yang
  * @since 2025/01/18/20:15

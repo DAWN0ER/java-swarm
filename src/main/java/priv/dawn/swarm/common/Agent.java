@@ -2,7 +2,7 @@ package priv.dawn.swarm.common;
 
 import lombok.Builder;
 import lombok.Getter;
-import priv.dawn.swarm.domain.FunctionRepository;
+import priv.dawn.swarm.domain.ToolRepository;
 import priv.dawn.swarm.enums.ToolChoices;
 
 /**
@@ -27,7 +27,7 @@ public class Agent {
     private String instructions = "You are a helpful agent.";
 
     @Builder.Default
-    private FunctionRepository functions = null;
+    private ToolRepository functions = null;
 
     @Builder.Default
     private String toolChoice = ToolChoices.AUTO.value;

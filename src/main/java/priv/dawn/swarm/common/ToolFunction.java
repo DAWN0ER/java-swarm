@@ -6,7 +6,7 @@ import priv.dawn.swarm.api.CallableFunction;
 
 /**
  * Created with IntelliJ IDEA.
- * Description:
+ * Description: 工具函数
  *
  * @author Dawn Yang
  * @since 2025/01/19/9:56

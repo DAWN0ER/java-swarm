@@ -8,7 +8,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.Validate;
 import priv.dawn.swarm.common.*;
-import priv.dawn.swarm.domain.FunctionRepository;
+import priv.dawn.swarm.domain.ToolRepository;
 import priv.dawn.swarm.enums.Roles;
 
 import java.util.ArrayList;
@@ -132,7 +132,7 @@ public abstract class BaseAgentClient implements AgentClient {
                 streamMsg.setMsgIndex(thisTurn);
                 // 封装残缺的 msg, 里面的所有引用都来自 model rsp
                 AgentMessage message = castFromModelRsp(chunk);
-                streamMsg.setMessages(message);
+                streamMsg.setMessage(message);
                 // 发送 flowable
                 processor.onNext(streamMsg);
             });
@@ -156,7 +156,7 @@ public abstract class BaseAgentClient implements AgentClient {
                 toolResultsMsg.forEach(msg -> {
                     AgentStreamMessage streamMessage = new AgentStreamMessage();
                     streamMessage.setMsgIndex(appendMsg.size());
-                    streamMessage.setMessages(msg);
+                    streamMessage.setMessage(msg);
                     processor.onNext(streamMessage);
                     appendMsg.add(msg);
                 });
@@ -186,10 +186,10 @@ public abstract class BaseAgentClient implements AgentClient {
      * @return 完成的工具调用的结果的 result，格式为 {”role“: "tool","content":"__result__"...}
      */
     private List<AgentMessage> handleFunctionCall(List<ToolFunctionCall> calls, Agent agent) {
-        FunctionRepository functionRepository = agent.getFunctions();
+        ToolRepository toolRepository = agent.getFunctions();
         List<AgentMessage> toolMsgList = new ArrayList<>();
         for (ToolFunctionCall call : calls) {
-            ToolFunction tool = Optional.ofNullable(functionRepository)
+            ToolFunction tool = Optional.ofNullable(toolRepository)
                     .map(f->f.getTool(call.getName()))
                     .orElse(null);
             if (Objects.isNull(tool)) {
